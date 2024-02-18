@@ -227,9 +227,7 @@ def summation(a, axes=None):
 
 class MatMul(TensorOp):
     def compute(self, a, b):
-        ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
-        ### END YOUR SOLUTION
+        return a @ b
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION

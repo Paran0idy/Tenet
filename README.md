@@ -4,7 +4,7 @@ A DL Framework for Tensor Computation
 Inspired by Needle Framework in CMU 10-414/714: Deep Learning Systems
 https://dlsyscourse.org/
 
-## Autugrad
+## Autograd
 
 ## Module
 + Module

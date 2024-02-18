@@ -5,18 +5,22 @@ import needle as ndl
 import needle.nn as nn
 import time
 import os
-from needle import backend_ndarray as nd
+import numpy as np
+from needle.backend_ndarray import *
+from needle.init import *
 
+start = time.time()
+a = ndl.Tensor(np.ones((1024, 1024)), device=triton())
+b = ndl.Tensor(np.ones((1024, 1024)), device=triton())
+c = a @ b
+print(c)
+end = time.time()
+print(end - start)
 
-# a = nd.NDArray([1, 1], device=nd.triton())
-# b = nd.NDArray([1, 1], device=nd.triton())
-
-
-
-# c = a + b
-# print(c, type(c))
-
-
-x = ndl.Tensor([1, 2], device=nd.triton())
-y = ndl.Tensor([1, 2], device=nd.triton())
-print(x @ y, x.device)
+start = time.time()
+x = ndl.Tensor(np.ones((1024, 1024)), device=cpu())
+y = ndl.Tensor(np.ones((1024, 1024)), device=cpu())
+z = x @ y
+print(z)
+end = time.time()
+print(end - start)

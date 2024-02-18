@@ -47,6 +47,18 @@ print(z)
  [1024. 1024. 1024. ... 1024. 1024. 1024.]]
  ```
 
+## Build
+
+git clone
+```bash
+git clone https://github.com/Paran0idy/Tenet.git
+```
+Tenet
+```bash
+cd ./Tenet
+make
+```
+
 ## Autograd
 
 ## Module

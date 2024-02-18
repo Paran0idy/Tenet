@@ -36,6 +36,7 @@ def compact(a, out, shape, strides, offset):
     out.array[:] = to_numpy(a, shape, strides, offset).flatten()
 
 
+
 def ewise_setitem(a, out, shape, strides, offset):
     to_numpy(out, shape, strides, offset)[:] = a.array.reshape(shape)
 
@@ -45,7 +46,7 @@ def scalar_setitem(size, val, out, shape, strides, offset):
 
 
 @triton.jit
-def triton_add(x_ptr, 
+def add_kernel(x_ptr, 
                y_ptr , 
                out_ptr, 
                num,
@@ -58,6 +59,7 @@ def triton_add(x_ptr,
     y = tl.load(y_ptr + offset)
     
     out = x + y
+    print("1")
         
     tl.store(out_ptr + offset, out)
     
@@ -67,9 +69,8 @@ def ewise_add(a, b, out):
     y = torch.tensor(b.array, device='cuda')
     o = torch.empty_like(x)
     num = o.size()[0]
-    print(num)
     grid = lambda meta: (triton.cdiv(num, meta['BLOCK_SIZE']), )
-    triton_add[grid](x, y, o, num, BLOCK_SIZE=2)
+    add_kernel[grid](x, y, o, num, BLOCK_SIZE=1024)
     out.array[:] = o.cpu().numpy()
     
 
@@ -131,10 +132,77 @@ def ewise_exp(a, out):
 
 def ewise_tanh(a, out):
     out.array[:] = np.tanh(a.array)
+    
 
+@triton.jit
+def matmul_kernel(
+    a_ptr,
+    b_ptr,
+    out_ptr,
+    M, N, K,
+    stride_am,
+    stride_ak,
+    stride_bk,
+    stride_bn,
+    stride_cm,
+    stride_cn,
+    BLOCK_M: tl.constexpr,
+    BLOCK_N: tl.constexpr,
+    BLOCK_K: tl.constexpr,
+):
+    pid = tl.program_id(0)
+    num_pid = N // BLOCK_N
+    pid_n = pid % num_pid;
+    pid_m = pid // num_pid
+    
+    m_offset = pid_m * BLOCK_M + tl.arange(0, BLOCK_M)
+    n_offset = pid_n * BLOCK_N + tl.arange(0, BLOCK_N)
+    
+    k_offset = tl.arange(0, BLOCK_K)
+    
+    a_start = a_ptr + (m_offset[:, None] * stride_am + k_offset[None, :] * stride_ak)
+    b_start = b_ptr + (k_offset[:, None] * stride_bk + n_offset[None, :] * stride_bn)
+    
+    acc = tl.zeros((BLOCK_M, BLOCK_N), dtype=tl.float32)
+    for _ in range(0, K, BLOCK_K):
+        # load
+        a = tl.load(a_start)
+        b = tl.load(b_start)
+        # dot
+        acc += tl.dot(a, b)
+        # advanced
+        a_start += BLOCK_K * stride_ak
+        b_start += BLOCK_K * stride_bk
+    
+    c = acc.to(tl.float16)
+    c_start = out_ptr + (m_offset[:, None] * stride_cm + n_offset[None, :] * stride_cn)
+    tl.store(c_start, c)
+    
 
 def matmul(a, b, out, m, n, p):
-    out.array[:] = (a.array.reshape(m, n) @ b.array.reshape(n, p)).reshape(-1)
+    a = torch.tensor(a.array.reshape(m, n), device='cuda')
+    b = torch.tensor(b.array.reshape(n, p), device='cuda')
+    # a.array = a.array.reshape(m, n).to('cuda')
+    # b.array = b.array.reshape(n, p).to('cuda')  
+    # out.array = out.array.reshape(m, p).to('cuda')
+    o = torch.tensor(out.array.reshape(m, p), device='cuda')
+    
+    BLOCK_M = BLOCK_N = BLOCK_K = 32
+    grid = lambda META: (triton.cdiv(m, META['BLOCK_M']) * triton.cdiv(p, META['BLOCK_N']), )
+    matmul_kernel[grid](a, b, o, 
+                        m, p, n, 
+                        a.stride(0), a.stride(1), 
+                        b.stride(0), b.stride(1), 
+                        o.stride(0), o.stride(1),
+                        BLOCK_M, BLOCK_N, BLOCK_K,
+                        )
+
+    out.array = o.cpu()
+        
+
+
+# def matmul(a, b, out, m, n, p):
+#     out.array[:] = (a.array.reshape(m, n) @ b.array.reshape(n, p)).reshape(-1)
 
 
 def reduce_max(a, out, reduce_size):

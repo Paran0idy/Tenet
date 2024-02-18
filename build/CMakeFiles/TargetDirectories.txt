@@ -1,0 +1,4 @@
+/home/twoballs/projects/dlsys/hw3/build/CMakeFiles/ndarray_backend_cpu.dir
+/home/twoballs/projects/dlsys/hw3/build/CMakeFiles/ndarray_backend_cuda.dir
+/home/twoballs/projects/dlsys/hw3/build/CMakeFiles/edit_cache.dir
+/home/twoballs/projects/dlsys/hw3/build/CMakeFiles/rebuild_cache.dir

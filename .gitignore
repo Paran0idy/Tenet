@@ -1,2 +1,4 @@
 build/
 .vscode/
+python/needle/backend_ndarray/ndarray_backend_cpu.cpython-310-x86_64-linux-gnu.so
+python/needle/backend_ndarray/ndarray_backend_cuda.cpython-310-x86_64-linux-gnu.so

@@ -7,7 +7,6 @@ import time
 import os
 import numpy as np
 from needle.backend_ndarray import *
-from needle.init import *
 
 start = time.time()
 a = ndl.Tensor(np.ones((1024, 1024)), device=triton())

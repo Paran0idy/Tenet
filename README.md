@@ -1,4 +1,16 @@
-# Homework 3
+# Tenet
+A DL Framework for Tensor Computation
 
-Public repository and stub/testing code for Homework 3 of 10-714.
+Inspired by Needle Framework in CMU 10-414/714: Deep Learning Systems
+https://dlsyscourse.org/
 
+## Autugrad
+
+## Module
++ Module
++ Optim
+
+## Backend
++ OpenAI Triton: MMA instruction using Tensor Cores
++ NVIDIA CUDA
++ X86 CPU

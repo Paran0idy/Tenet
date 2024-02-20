@@ -439,6 +439,66 @@ __global__ void MatmulKernel(const scalar_t* a, const scalar_t* b, scalar_t* out
 }
 
 
+/*
+Thread Tiling
+*/
+
+// block tile
+#define BLOCK_M 128
+#define BLOCK_N 128
+#define BLOCK_K 8
+
+// element per thread  
+#define THREAD_N 8
+
+#define OFFSET(i, j, N) ((i) * (N) + (j)) 
+#define FLOAT4(pointer) reinterpret_cast<float4*>(&pointer)[0]
+__global__ void matmul_threadTiling(float *a, float *b, float *c, int M, int N, int K){
+
+    __shared__ float shared_a[BLOCK_M][BLOCK_K];
+    __shared__ float shared_b[BLOCK_K][BLOCK_N];
+
+    float res[THREAD_N][THREAD_N] = {0};
+
+    int tid = threadIdx.y * blockDim.x + threadIdx.x;
+
+    int smem_a_m = tid / 2;
+    int smem_a_k = (tid % 2) * 4;
+
+    int smem_b_k = tid / 32;
+    int smem_b_n = (tid % 32) * 4;
+
+    int gmem_a_m = BLOCK_M * blockIdx.y + smem_a_m;
+    int gmem_b_n = BLOCK_N * blockIdx.x + smem_b_n;
+
+    for(int k = 0; k < K / BLOCK_K; k++){
+        // GMEM -> SMEM
+        int gmem_a_k = k * BLOCK_K + smem_a_k;
+        int gmem_b_k = k * BLOCK_K + smem_b_k;
+
+        FLOAT4(shared_a[smem_a_m][smem_a_k]) = FLOAT4(a[OFFSET(gmem_a_m, gmem_a_k, K)]);
+        FLOAT4(shared_b[smem_b_k][smem_b_n]) = FLOAT4(b[OFFSET(gmem_b_k, gmem_b_n, N)]);
+        __syncthreads();
+
+        // Compute
+        int ty = threadIdx.y * THREAD_N;
+        int tx = threadIdx.x * THREAD_N;
+        for(int kk = 0; kk < BLOCK_K; kk++)
+            for(int ii = 0; ii < THREAD_N; ii++)
+                for(int jj = 0; jj < THREAD_N; jj++)
+                    res[ii][jj] += shared_a[ty + ii][kk] * shared_b[kk][tx + jj];
+        __syncthreads();
+    }
+
+    // Write back
+    int ty = BLOCK_M * blockIdx.y + THREAD_N * threadIdx.y;
+    int tx = BLOCK_N * blockIdx.x + THREAD_N * threadIdx.x;
+
+    for(int i = 0; i < THREAD_N; i++)
+        for(int j = 0; j < THREAD_N; j++)
+            c[OFFSET(ty + i, tx + j, N)] = res[i][j];
+}
+
 void Matmul(const CudaArray& a, const CudaArray& b, CudaArray* out, uint32_t M, uint32_t N,
             uint32_t P) {
   /**
@@ -462,6 +522,15 @@ void Matmul(const CudaArray& a, const CudaArray& b, CudaArray* out, uint32_t M, 
    *   N: columns of a / rows of b
    *   P: columns of b / out
    */
+
+  // Thread tiling
+  if(M % BLOCK_M == 0 && N % BLOCK_K == 0 && P % BLOCK_N == 0){
+    dim3 grid(M / BLOCK_M, P / BLOCK_N);
+    dim3 block(BLOCK_M / THREAD_N, BLOCK_N / THREAD_N);
+    matmul_threadTiling<<<grid, block>>>(a.ptr, b.ptr, out->ptr, M, P, N);
+    return ;
+  }
+
   CudaDims dim = CudaOneDim(M * N * P);
   MatmulKernel<<<dim.grid, dim.block>>>(a.ptr, b.ptr, out->ptr, M * P, M, N, P);
 }

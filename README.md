@@ -70,3 +70,7 @@ make
 + NVIDIA CUDA
 + X86 CPU
 
+## Dependence
++ OpenAI Triton
++ Pytorch
++ NVIDIA CUDA

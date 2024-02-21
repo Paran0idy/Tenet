@@ -1,5 +1,6 @@
 # Tenet
 A DL Framework for Tensor Computation
+![Architechture](Architechture.png)
 
 Inspired by Needle Framework in CMU 10-414/714: Deep Learning Systems
 https://dlsyscourse.org/

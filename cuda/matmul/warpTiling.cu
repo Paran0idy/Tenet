@@ -29,6 +29,20 @@ __global__ void matmul(float *a, float *b, float *c, int M, int N, int K){
     int gmem_a_m = BLOCK_M * blockIdx.y + smem_a_m;
     int gmem_b_n = BLOCK_N * blockIdx.x + smem_b_n;
 
+    int cta_size[2] = {4, 2};
+    int warp_size[2] = {4, 8};
+    int WARP_M = BLOCK_M / cta_size[0];
+    int WARP_N = BLOCK_N / cta_size[1];
+
+    int warp_id = tid / 32;
+    int lane_id = tid % 32;
+
+    int wy = warp_id / cta_size[1];
+    int wx = warp_id % cta_size[1];
+
+    int ty = lane_id / warp_size[1];
+    int tx = lane_id % warp_size[1];
+
     for(int k = 0; k < K / BLOCK_K; k++){
         // GMEM -> SMEM
         int gmem_a_k = k * BLOCK_K + smem_a_k;
@@ -39,22 +53,30 @@ __global__ void matmul(float *a, float *b, float *c, int M, int N, int K){
         __syncthreads();
 
         // Compute
-        int ty = threadIdx.y * THREAD_N;
-        int tx = threadIdx.x * THREAD_N;
         for(int kk = 0; kk < BLOCK_K; kk++)
-            for(int ii = 0; ii < THREAD_N; ii++)
-                for(int jj = 0; jj < THREAD_N; jj++)
-                    res[ii][jj] += shared_a[ty + ii][kk] * shared_b[kk][tx + jj];
+            for(int i = 0; i < 2; i++){
+                int thread_y = wy * WARP_M + THREAD_N / 2 * ty + i * WARP_M / 2;
+                for(int j = 0; j < 2; j++){
+                    int thread_x = wx * WARP_N + THREAD_N / 2 * tx + j * WARP_N / 2;
+                    for(int m = 0; m < THREAD_N / 2; m++)
+                        for(int n = 0; n < THREAD_N / 2; n++)
+                            res[i * THREAD_N / 2 + m][j * THREAD_N / 2 + n] += shared_a[thread_y + m][kk] * shared_b[kk][thread_x + n];
+                }
+            }
         __syncthreads();
     }
 
     // Write back
-    int ty = BLOCK_M * blockIdx.y + THREAD_N * threadIdx.y;
-    int tx = BLOCK_N * blockIdx.x + THREAD_N * threadIdx.x;
-
-    for(int i = 0; i < THREAD_N; i++)
-        for(int j = 0; j < THREAD_N; j++)
-            c[OFFSET(ty + i, tx + j, N)] = res[i][j];
+    int block_y = BLOCK_M * blockIdx.y;
+    int block_x = BLOCK_N * blockIdx.x;  
+    for(int i = 0; i < 2; i++)
+        for(int j = 0; j < 2; j++){
+            int thread_y = wy * WARP_M + THREAD_N / 2 * ty + i * WARP_M / 2;
+            int thread_x = wx * WARP_N + THREAD_N / 2 * tx + j * WARP_N / 2;
+            for(int m = 0; m < THREAD_N / 2; m++)
+                for(int n = 0; n < THREAD_N / 2; n++)
+                    c[OFFSET(block_y + thread_y + m, block_x + thread_x + n, N)] = res[i * THREAD_N / 2 + m][j * THREAD_N / 2 + n];
+        }
 }
 
 
@@ -83,8 +105,8 @@ int main(){
     cudaMemcpy(db, b, K * N * sizeof(float), cudaMemcpyHostToDevice);
 
     // Invoke kernel
-    dim3 grid(M / BLOCK_M, N / BLOCK_N);
-    dim3 block(BLOCK_M / THREAD_N, BLOCK_N / THREAD_N);
+    dim3 grid(N / BLOCK_N, M / BLOCK_M);
+    dim3 block(BLOCK_N / THREAD_N, BLOCK_M / THREAD_N);
     matmul<<<grid, block>>>(da, db, dc, M, N, K);
 
     // Copy to host

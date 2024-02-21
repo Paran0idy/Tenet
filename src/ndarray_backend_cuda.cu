@@ -525,8 +525,8 @@ void Matmul(const CudaArray& a, const CudaArray& b, CudaArray* out, uint32_t M, 
 
   // Thread tiling
   if(M % BLOCK_M == 0 && N % BLOCK_K == 0 && P % BLOCK_N == 0){
-    dim3 grid(M / BLOCK_M, P / BLOCK_N);
-    dim3 block(BLOCK_M / THREAD_N, BLOCK_N / THREAD_N);
+    dim3 grid(P / BLOCK_N, M / BLOCK_M);
+    dim3 block(BLOCK_N / THREAD_N, BLOCK_M / THREAD_N);
     matmul_threadTiling<<<grid, block>>>(a.ptr, b.ptr, out->ptr, M, P, N);
     return ;
   }

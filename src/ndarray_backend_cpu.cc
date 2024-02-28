@@ -394,6 +394,13 @@ void ReduceSum(const AlignedArray& a, AlignedArray* out, size_t reduce_size) {
   }
 }
 
+
+void EwiseNegative(const AlignedArray& a, AlignedArray* out) {
+  for (size_t i = 0; i < a.size; i++) 
+    out->ptr[i] = -a.ptr[i];
+}
+
+
 }  // namespace cpu
 }  // namespace needle
 
@@ -454,4 +461,7 @@ PYBIND11_MODULE(ndarray_backend_cpu, m) {
 
   m.def("reduce_max", ReduceMax);
   m.def("reduce_sum", ReduceSum);
+
+
+  m.def("ewise_negative", EwiseNegative);
 }

@@ -211,3 +211,38 @@ def reduce_max(a, out, reduce_size):
 
 def reduce_sum(a, out, reduce_size):
     out.array[:] = a.array[:].reshape(-1, reduce_size).sum(axis=1)
+
+
+
+@triton.jit
+def ewise_negative_kernel(
+    a_ptr,
+    out_ptr,
+    num,
+    BLOCK_SIZE: tl.constexpr
+):
+    pid = tl.program_id(0)
+    a_start = pid * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
+    out_start = pid * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
+    
+    a = tl.load(a_ptr + a_start)
+    
+    out = -a
+    
+    tl.store(out_ptr + out_start, out)
+    
+    
+    
+    
+
+def ewise_negative(a, out):
+    a = torch.tensor(a.array, device="cuda")
+    o = torch.tensor(out.array, device="cuda")
+    BLOCK_SIZE = 32
+    
+    num = len(a)
+    
+    grid = lambda meta: (triton.cdiv(num, meta['BLOCK_SIZE']), )
+    
+    ewise_negative_kernel[grid](a, o, num, BLOCK_SIZE)
+    out.array = o.cpu()

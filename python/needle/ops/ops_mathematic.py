@@ -6,7 +6,6 @@ from typing import Optional, List, Tuple, Union
 from ..autograd import NDArray, array_api
 from ..autograd import Op, Tensor, Value, TensorOp
 from ..autograd import TensorTuple, TensorTupleOp
-import numpy
 
 # NOTE: we will import numpy as the array_api
 # as the backend for our computations, this line will change in later homeworks
@@ -68,27 +67,6 @@ def mul_scalar(a, scalar):
     return MulScalar(scalar)(a)
 
 
-class EWisePow(TensorOp):
-    """Op to element-wise raise a tensor to a power."""
-
-    def compute(self, a: NDArray, b: NDArray) -> NDArray:
-        return a**b
-
-    def gradient(self, out_grad, node):
-        if not isinstance(node.inputs[0], NDArray) or not isinstance(
-            node.inputs[1], NDArray
-        ):
-            raise ValueError("Both inputs must be tensors (NDArray).")
-
-        a, b = node.inputs[0], node.inputs[1]
-        grad_a = out_grad * b * (a ** (b - 1))
-        grad_b = out_grad * (a**b) * log(a)
-        return grad_a, grad_b
-
-def power(a, b):
-    return EWisePow()(a, b)
-
-
 class PowerScalar(TensorOp):
     """Op raise a tensor to an (integer) power."""
 
@@ -122,6 +100,22 @@ class EWisePow(TensorOp):
         a, b = node.inputs[0], node.inputs[1]
         grad_a = out_grad * b * (a ** (b - 1))
         grad_b = out_grad * (a**b) * array_api.log(a.data)
+        return grad_a, grad_b
+
+def power(a, b):
+    return EWisePow()(a, b)
+
+
+class EWiseDiv(TensorOp):
+    """Op to element-wise divide two nodes."""
+
+    def compute(self, a, b):
+        return a / b
+
+    def gradient(self, out_grad, node):
+        lhs, rhs = node.inputs
+        grad_a = out_grad / rhs
+        grad_b = - out_grad * lhs / (rhs ** 2)
         return grad_a, grad_b
 
 
@@ -238,8 +232,6 @@ class Summation(TensorOp):
 
         return reshape(out_grad, shape=shape) * array_api.ones(input_shape)
 
-
-
 def summation(a, axes=None):
     return Summation(axes)(a)
 
@@ -311,7 +303,6 @@ class ReLU(TensorOp):
     def gradient(self, out_grad, node):
         input = node.inputs
         return out_grad * (input[0].realize_cached_data() > 0)
-
 
 
 def relu(a):

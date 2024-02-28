@@ -30,6 +30,9 @@ class BackendDevice:
 
     def enabled(self):
         return self.mod is not None
+    
+    def ones(self, *shape, dtype="float32"):
+        return NDArray(np.ones(shape, dtype=dtype), device=self)
 
     def randn(self, *shape, dtype="float32"):
         # note: numpy doesn't support types within standard random routines, and
@@ -257,6 +260,10 @@ class NDArray:
         new_stride = self.compact_strides(new_shape)
         return self.make(new_shape, new_stride, self._device, self._handle)
 
+    def transpose(self, axes):
+        if len(self.shape) == 2 :
+           return self.permute((1, 0))
+
     def permute(self, new_axes):
         """
         Permute order of the dimensions.  new_axes describes a permuation of the
@@ -480,6 +487,11 @@ class NDArray:
         return 1 - (self > other)
 
     ### Elementwise functions
+    
+    def negative(self):
+        out = NDArray.make(self.shape, device=self.device)
+        self.device.ewise_negative(self.compact()._handle, out._handle)
+        return out
 
     def log(self):
         out = NDArray.make(self.shape, device=self.device)
@@ -595,6 +607,11 @@ def empty(shape, dtype="float32", device=None):
     return device.empty(shape, dtype)
 
 
+def ones(shape, dtype="float32", device=None):
+    device = device if device is not None else default_device()
+    return device.ones(shape, dtype)
+
+
 def full(shape, fill_value, dtype="float32", device=None):
     device = device if device is not None else default_device()
     return device.full(shape, fill_value, dtype)
@@ -630,3 +647,9 @@ def sum(a, axis=None):
 
 def matmul(a, b):
     return a.matmul(b)
+
+def negative(a):
+    return a.negative();
+
+def transpose(a, axis=None):
+    return a.transpose(axis)

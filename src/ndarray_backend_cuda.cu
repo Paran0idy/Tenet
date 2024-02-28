@@ -587,6 +587,22 @@ void ReduceSum(const CudaArray& a, CudaArray* out, size_t reduce_size) {
   ReduceSumKernel<<<dim.grid, dim.block>>>(a.ptr, out->ptr, reduce_size, out->size);
 }
 
+
+// EwiseNegative
+
+__global__ void EwiseNegativeKernel(const scalar_t *a, scalar_t *out, uint32_t out_size){
+  size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+  if(gid >= out_size) return ;
+
+  out[gid] = -out[gid];
+}
+
+void EwiseNegative(const CudaArray &a, CudaArray *out){
+  CudaDims dim = CudaOneDim(out->size);
+  EwiseNegativeKernel<<<dim.grid, dim.block>>>(a.ptr, out->ptr, out->size);
+}
+
+
 }  // namespace cuda
 }  // namespace needle
 
@@ -656,4 +672,6 @@ PYBIND11_MODULE(ndarray_backend_cuda, m) {
 
   m.def("reduce_max", ReduceMax);
   m.def("reduce_sum", ReduceSum);
+
+  m.def("ewise_negative", EwiseNegative);
 }

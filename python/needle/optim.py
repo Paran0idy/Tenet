@@ -24,9 +24,11 @@ class SGD(Optimizer):
         self.weight_decay = weight_decay
 
     def step(self):
-        ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
-        ### END YOUR SOLUTION
+        for w in self.params:
+            u_w = 0 if self.u.get(w) is None else self.u.get(w)
+            u_w = self.momentum * u_w + (1 - self.momentum) * (w.grad.detach() + w.detach() * self.weight_decay)
+            w.cached_data = w.cached_data - self.lr * u_w.cached_data
+            self.u[w] = u_w
 
     def clip_grad_norm(self, max_norm=0.25):
         """
@@ -59,6 +61,17 @@ class Adam(Optimizer):
         self.v = {}
 
     def step(self):
-        ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
-        ### END YOUR SOLUTION
+        self.t += 1
+        for w in self.params:
+            m_w = 0 if self.m.get(w) is None else self.m.get(w)
+            v_w = 0 if self.v.get(w) is None else self.v.get(w)
+            m_w = self.beta1 * m_w + (1 - self.beta1) * (w.grad.detach() + w.detach() * self.weight_decay)
+            v_w = self.beta2 * v_w + (1 - self.beta2) * (w.grad.detach() + w.detach() * self.weight_decay) ** 2
+            
+            self.m[w] = m_w
+            self.v[w] = v_w
+            
+            m_w = self.m[w].cached_data / (1 - self.beta1 ** self.t)
+            v_w = self.v[w].cached_data / (1 - self.beta2 ** self.t)
+            
+            w.cached_data = w.cached_data - self.lr * m_w / ((v_w ** 0.5) + self.eps)

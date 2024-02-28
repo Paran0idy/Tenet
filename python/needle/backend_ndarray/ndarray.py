@@ -496,6 +496,9 @@ class NDArray:
         self.device.ewise_tanh(self.compact()._handle, out._handle)
         return out
 
+    def matmul(self, other):
+        return self.__matmul__(other)
+
     ### Matrix multiplication
     def __matmul__(self, other):
         """Matrix multplication of two arrays.  This requires that both arrays
@@ -623,3 +626,7 @@ def tanh(a):
 
 def sum(a, axis=None):
     return a.sum(axis=axis)
+
+
+def matmul(a, b):
+    return a.matmul(b)

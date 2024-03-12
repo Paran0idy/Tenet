@@ -58,9 +58,7 @@ def add_kernel(x_ptr,
     x = tl.load(x_ptr + offset)
     y = tl.load(y_ptr + offset)
     
-    out = x + y
-    print("1")
-        
+    out = x + y        
     tl.store(out_ptr + offset, out)
     
 
@@ -187,17 +185,20 @@ def matmul(a, b, out, m, n, p):
     # out.array = out.array.reshape(m, p).to('cuda')
     o = torch.tensor(out.array.reshape(m, p), device='cuda')
     
-    BLOCK_M = BLOCK_N = BLOCK_K = 32
-    grid = lambda META: (triton.cdiv(m, META['BLOCK_M']) * triton.cdiv(p, META['BLOCK_N']), )
-    matmul_kernel[grid](a, b, o, 
-                        m, p, n, 
-                        a.stride(0), a.stride(1), 
-                        b.stride(0), b.stride(1), 
-                        o.stride(0), o.stride(1),
-                        BLOCK_M, BLOCK_N, BLOCK_K,
-                        )
+    for BLOCK_M in [32, 64]:
+        for BLOCK_N in [32, 64]:
+            for BLOCK_K in [32, 64]:
+                grid = lambda META: (triton.cdiv(m, META['BLOCK_M']) * triton.cdiv(p, META['BLOCK_N']), )
+                matmul_kernel[grid](a, b, o, 
+                                    m, p, n, 
+                                    a.stride(0), a.stride(1), 
+                                    b.stride(0), b.stride(1), 
+                                    o.stride(0), o.stride(1),
+                                    BLOCK_M, BLOCK_N, BLOCK_K,
+                                    )
 
-    out.array = o.cpu()
+                out.array = o.cpu()
+                print(out.array)
         
 
 

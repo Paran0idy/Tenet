@@ -101,6 +101,13 @@ cd ./Tenet
 make
 ```
 
+### run
+```bash
+# using ndarray backend like cuda, cpu and triton
+export PYTHONPATH=./python && export NEEDLE_BACKEND=nd
+```
+
+
 ## Autograd
 
 ## Module

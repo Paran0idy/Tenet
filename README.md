@@ -101,10 +101,20 @@ cd ./Tenet
 make
 ```
 
+### dependence
++ triton
++ pytorch
+```bash
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+pip install triton
+```
+
+
 ### run
 ```bash
 # using ndarray backend like cuda, cpu and triton
 export PYTHONPATH=./python && export NEEDLE_BACKEND=nd
+python3 ./apps/test.py
 ```
 
 

@@ -1,6 +1,6 @@
 import sys
 
-sys.path.append("../python")
+sys.path.append("../python")    
 import needle as ndl
 import numpy as np
 from needle.backend_ndarray import *

@@ -43,52 +43,6 @@ print("x.grad : \n", x.grad)
 
 ```
 
-
-```
-----Triton Backend----
-c : 
- [[0. 0. 0. ... 0. 0. 0.]
- [0. 0. 0. ... 0. 0. 0.]
- [0. 0. 0. ... 0. 0. 0.]
- ...
- [0. 0. 0. ... 0. 0. 0.]
- [0. 0. 0. ... 0. 0. 0.]
- [0. 0. 0. ... 0. 0. 0.]]
-a.grad : 
- [[1. 1. 1. ... 1. 1. 1.]
- [1. 1. 1. ... 1. 1. 1.]
- [1. 1. 1. ... 1. 1. 1.]
- ...
- [1. 1. 1. ... 1. 1. 1.]
- [1. 1. 1. ... 1. 1. 1.]
- [1. 1. 1. ... 1. 1. 1.]]
-b.grad : 
- [[-1. -1. -1. ... -1. -1. -1.]
- [-1. -1. -1. ... -1. -1. -1.]
- [-1. -1. -1. ... -1. -1. -1.]
- ...
- [-1. -1. -1. ... -1. -1. -1.]
- [-1. -1. -1. ... -1. -1. -1.]
- [-1. -1. -1. ... -1. -1. -1.]]
-----CPU Backend----
-z : 
- [[1024. 1024. 1024. ... 1024. 1024. 1024.]
- [1024. 1024. 1024. ... 1024. 1024. 1024.]
- [1024. 1024. 1024. ... 1024. 1024. 1024.]
- ...
- [1024. 1024. 1024. ... 1024. 1024. 1024.]
- [1024. 1024. 1024. ... 1024. 1024. 1024.]
- [1024. 1024. 1024. ... 1024. 1024. 1024.]]
-x.grad : 
- [[1024. 1024. 1024. ... 1024. 1024. 1024.]
- [1024. 1024. 1024. ... 1024. 1024. 1024.]
- [1024. 1024. 1024. ... 1024. 1024. 1024.]
- ...
- [1024. 1024. 1024. ... 1024. 1024. 1024.]
- [1024. 1024. 1024. ... 1024. 1024. 1024.]
- [1024. 1024. 1024. ... 1024. 1024. 1024.]]
- ```
-
 ## Install
 
 ### git clone
@@ -102,32 +56,30 @@ make
 ```
 
 ### dependence
-+ triton
-+ pytorch
++ OpenAI Triton
++ Pytorch
 ```bash
 pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-pip install triton
+pip3 install triton
 ```
 
 
-### run
+### env
 ```bash
-# using ndarray backend like cuda, cpu and triton
+# using ndarray backend cuda, cpu or triton
 export PYTHONPATH=./python && export NEEDLE_BACKEND=nd
-python3 ./apps/test.py
 ```
 
 
-## Autograd
 
-## Module
-+ Module
-+ Optim
+## Frontend
+### Autograd
+### Module
+### Optim
 
 ## Backend
-
 ### OpenAI Triton
-+ Matmul
++ matmul
 
 ```python
 @triton.jit
@@ -170,19 +122,18 @@ def matmul_kernel(
     tl.store(c_start, c)
 ```
 
-MMA instruction using Tensor Cores
-
-`mma.sync.align.m16n8k16`
-
-`ldmatrix.sync`
-
-`ldmatrix.trans.sync`
+MMA instruction using Tensor Cores, like Ampere Arch
+>   `mma.sync.align.m16n8k16` \
+    `ldmatrix.sync` \
+    `ldmatrix.trans.sync`
 
 
 ### NVIDIA CUDA
-### X86 CPU
++ matmul
++ reduce
++ element-wise
 
-## Dependence
-+ OpenAI Triton
-+ Pytorch
-+ NVIDIA CUDA
+### X86 CPU
++ matmul
++ reduce
++ element-wise

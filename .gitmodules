@@ -1,0 +1,3 @@
+[submodule "3rd/triton"]
+	path = 3rd/triton
+	url = https://github.com/Paran0idy/triton.git
